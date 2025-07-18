@@ -7,6 +7,7 @@ use Ampersand\PatchHelper\Exception\PluginDetectionException;
 use Ampersand\PatchHelper\Exception\VirtualTypeException;
 use Ampersand\PatchHelper\Helper;
 use Ampersand\PatchHelper\Helper\PatchOverrideValidator as Validator;
+use Ampersand\PatchHelper\Output\JunitXmlFormatter;
 use Ampersand\PatchHelper\Patchfile;
 use Ampersand\PatchHelper\Service\GetAppCodePathFromVendorPath;
 use Symfony\Component\Console\Command\Command;
@@ -87,6 +88,12 @@ class AnalyseCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'Show all IGNORE level reports'
+            )
+            ->addOption(
+                'junit-xml',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Output JUnit compatible XML report to specified file'
             )
             ->setDescription('Analyse a magento2 project which has had a ./vendor.patch file manually created');
     }
@@ -318,6 +325,33 @@ class AnalyseCommand extends Command
                 "<error>Please raise a github issue with the above" .
                 " error information and the contents of $vendorFilesErrorPatchFile</error>" . PHP_EOL
             );
+        }
+
+        // Handle JUnit XML output
+        $junitXmlFile = $input->getOption('junit-xml');
+        if ($junitXmlFile !== null) {
+            $formatter = new JunitXmlFormatter();
+            $xmlContent = $formatter->format(
+                $summaryOutputData,
+                $warnLevelCount,
+                $infoLevelCount,
+                $ignoreLevelCount,
+                $projectDir
+            );
+            
+            if ($junitXmlFile === '') {
+                // If no filename provided, default to junit.xml
+                $junitXmlFile = 'junit.xml';
+            }
+            
+            $xmlPath = $junitXmlFile;
+            if (!str_contains($xmlPath, '/')) {
+                // If relative path, put it in project directory
+                $xmlPath = rtrim($projectDir, DS) . DS . $junitXmlFile;
+            }
+            
+            file_put_contents($xmlPath, $xmlContent);
+            $output->writeln("<info>JUnit XML report written to: $xmlPath</info>");
         }
 
         $tableHeaders = ['Level', 'Type', 'File', 'To Check'];
