@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "symfony/console": "^3.4|^4.0",
+        "symfony/console": "^5",
         "php": "~7.2|~7.3|~7.4|~8.1|~8.2",
         "ext-libxml": "*"
     },
