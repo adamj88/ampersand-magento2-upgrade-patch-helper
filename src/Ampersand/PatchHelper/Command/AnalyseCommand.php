@@ -359,10 +359,11 @@ class AnalyseCommand extends Command
             $tableHeaders[] = 'Auto applied';
         }
 
-        $outputTable = new Table($output);
-        $outputTable->setHeaders($tableHeaders);
-        $outputTable->addRows($summaryOutputData);
-        $outputTable->render();
+        // Output GitLab flavored markdown table
+        $this->outputGitLabMarkdownTable($output, $tableHeaders, $summaryOutputData);
+        
+        // Add whitespace after table for GitLab compatibility
+        $output->writeln('');
 
         if (!empty($threeWayDiff)) {
             $output->writeln("<comment>Outputting diff commands below</comment>");
@@ -381,24 +382,57 @@ class AnalyseCommand extends Command
         if (!$input->getOption('show-info') && $infoLevelCount > 0) {
             $infoMessage .= " (to view re-run this tool with --show-info)";
         }
+        $output->writeln('');
         $output->writeln("<comment>$infoMessage</comment>");
+
         $ignoreMessage = "IGNORE count: $ignoreLevelCount";
         if (!$input->getOption('show-ignore') && $ignoreLevelCount > 0) {
             $ignoreMessage .= " (to view re-run this tool with --show-ignore)";
         }
         if ($ignoreLevelCount > 0) {
+            $output->writeln('');
             $output->writeln("<comment>$ignoreMessage</comment>");
         }
+
+        $output->writeln('');
 
         $output->writeln(
             "<comment>For docs on each check see " . self::DOCS_URL . "</comment>"
         );
+
+        $output->writeln('');
+
         $output->writeln(
             "<comment>You should review the above $countToCheck items alongside $newPatchFilePath</comment>"
         );
 
         file_put_contents($newPatchFilePath, implode(PHP_EOL, $patchFilesToOutput));
         return $exitCode;
+    }
+
+    /**
+     * Output data as GitLab flavored markdown table
+     *
+     * @param Output $output
+     * @param array $headers
+     * @param array $rows
+     * @return void
+     */
+    private function outputGitLabMarkdownTable(Output $output, array $headers, array $rows)
+    {
+        // Output header row
+        $headerRow = '| ' . implode(' | ', $headers) . ' |';
+        $output->writeln($headerRow);
+        
+        // Output separator row
+        $separatorRow = '| ' . implode(' | ', array_fill(0, count($headers), '------')) . ' |';
+        $output->writeln($separatorRow);
+        
+        // Output data rows
+        foreach ($rows as $row) {
+            $dataRow = '| ' . implode(' | ', $row) . ' |';
+            $output->writeln($dataRow);
+        }
     }
 
     /**
